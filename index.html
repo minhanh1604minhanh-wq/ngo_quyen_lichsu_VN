@@ -54,9 +54,11 @@
         .game-panel.active { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
         .panel-close-icon { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #8c8c8c; font-size: 2rem; cursor: pointer; padding: 0; z-index: 10; transition: color 0.3s; }
         .panel-close-icon:hover { color: #e5c158; }
-        .progress-container { width: 100%; background-color: #333; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; height: 6px; }
-        .progress-bar { width: 0%; height: 100%; transition: width 0.5s ease;}
         
+        .progress-container { width: 100%; background-color: #333; border-radius: 10px; margin-bottom: 15px; display: none; overflow: hidden; height: 16px; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
+        .progress-bar { width: 0%; height: 100%; transition: width 0.3s linear; position: absolute; top: 0; left: 0; z-index: 1;}
+        .progress-text { position: absolute; width: 100%; top: 0; left: 0; height: 100%; text-align: center; color: #ffffff; font-size: 11px; font-weight: bold; line-height: 16px; z-index: 2; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); pointer-events: none; font-family: 'Lora', serif; }
+
         .result-box { background: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 15px; min-height: 60px; margin-bottom: 15px; text-align: justify; color: #dddddd; line-height: 1.6; font-size: 0.95rem; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; } 
         .text-input { flex: 1; background: rgba(0, 0, 0, 0.6); border-radius: 20px; padding: 10px 15px; color: #fff; font-family: 'Lora', serif; font-size: 0.95rem; outline: none; transition: all 0.3s; }
@@ -104,9 +106,7 @@
         .overlay-content { font-size: 0.95rem; line-height: 1.7; color: #cdcdcd; text-align: justify;} 
         .overlay-content p { margin-bottom: 15px; }
 
-        #pdf-export-container { position: absolute; left: -9999px; top: 0; width: 800px; background: #fff; color: #000; padding: 40px; font-family: 'Lora', serif; }
-        .pdf-title { font-size: 24px; color: #b33939; text-align: center; border-bottom: 2px solid #b33939; padding-bottom: 10px; margin-bottom: 20px;}
-        .pdf-content { font-size: 16px; line-height: 1.6; text-align: justify;}
+        #pdf-export-container { display: none; }
     </style>
 </head>
 <body>
@@ -145,7 +145,7 @@
     <div id="qa-panel" class="game-panel">
         <button class="panel-close-icon" onclick="closeAllPopups()">&times;</button>
         <div class="qa-header" id="qa-status">Hệ thống AI đang sẵn sàng</div>
-        <div class="progress-container" id="qa-progress"><div class="progress-bar" id="qa-bar"></div></div>
+        <div class="progress-container" id="qa-progress"><div class="progress-bar" id="qa-bar"></div><div class="progress-text" id="qa-text">0%</div></div>
         <div class="result-box" id="qa-result">Nhấn nút Mic hoặc gõ câu hỏi vào ô bên dưới.</div>
         <div class="prompt-suggestions" id="qa-prompts"></div>
         <div class="input-group">
@@ -159,7 +159,7 @@
         <button class="panel-close-icon" onclick="closeAllPopups()">&times;</button>
         <div class="mv-header" id="mv-status">🌌 CỖ MÁY ĐA VŨ TRỤ LƯỢNG TỬ</div>
         <div class="mv-guide">Nhập giả thuyết đi ngược lịch sử (Ví dụ: Nếu Ngô Quyền không dùng cọc nhọn thì sao?)</div>
-        <div class="progress-container" id="mv-progress"><div class="progress-bar" id="mv-bar"></div></div>
+        <div class="progress-container" id="mv-progress"><div class="progress-bar" id="mv-bar"></div><div class="progress-text" id="mv-text">0%</div></div>
         <div id="mv-stats">
             <div class="stat-box"><div class="mv-stat-title">Thành công</div><div class="mv-stat-num stat-success" id="mv-stat-success">0%</div></div>
             <div class="stat-box"><div class="mv-stat-title">Thương vong</div><div class="mv-stat-num stat-casualty" id="mv-stat-casualty">0%</div></div>
@@ -178,8 +178,8 @@
     <div id="roleplay-panel" class="game-panel">
         <button class="panel-close-icon" onclick="closeAllPopups()">&times;</button>
         <div class="rp-header">TIỀN NGÔ VƯƠNG</div>
-        <div class="rp-turn" id="rp-turn-text">Lượt: 1 / 15</div>
-        <div class="progress-container" id="rp-progress"><div class="progress-bar" id="rp-bar"></div></div>
+        <div class="rp-turn" id="rp-turn-text">Lượt: 1 / 10</div>
+        <div class="progress-container" id="rp-progress"><div class="progress-bar" id="rp-bar"></div><div class="progress-text" id="rp-text">0%</div></div>
         <div class="rp-npc-box" id="rp-npc-text">Đang triệu hồi các quần thần...</div>
         <div class="rp-options" id="rp-options-container"></div>
         <button class="panel-btn btn-export" id="btnExportRoleplay">📥 Xuất Học bạ Điện tử</button>
@@ -235,17 +235,16 @@
         };
 
         const body = document.body; const model = document.querySelector('#myModel'); const introScreen = document.querySelector('#intro-screen'); const startBtn = document.querySelector('#start-btn'); const langToggleBtn = document.querySelector('#lang-toggle-btn'); const restartBtn = document.querySelector('#restart-btn'); const playerNameInput = document.querySelector('#player-name-input');
-        
         const detailBtn = document.querySelector('#detailBtn'); const guideBtn = document.querySelector('#guideBtn'); const qaBtn = document.querySelector('#qaBtn'); const mvBtn = document.querySelector('#mvBtn'); const roleplayBtn = document.querySelector('#roleplayBtn');
         const overlayDetail = document.querySelector('#overlayDetail'); const overlayGuide = document.querySelector('#overlayGuide');
-        
         const audioVn = document.querySelector('#audio-vn'); const audioEn = document.querySelector('#audio-en'); const sweepAudio = document.querySelector('#sweep-audio'); const blowAudio = document.querySelector('#blow-audio'); 
         
-        audioVn.volume = 0.15; audioEn.volume = 0.15; sweepAudio.volume = 0.6; blowAudio.volume = 0.8; 
+        audioVn.volume = 0.8; audioEn.volume = 0.8; sweepAudio.volume = 0.6; blowAudio.volume = 0.8; 
         
         let selectedLang = 'vi'; let playerName = "Người lạ"; let isMainExperienceStarted = false;
+        
         let currentAbortController = null; let rpAbortController = null; let typingInterval = null; 
-        let currentTTSAudio = new Audio(); 
+        let mvAnimInterval = null; let progressHideTimeout = null; let currentTTSAudio = new Audio(); 
         
         let qaHistory = []; let mvHistory = []; let rpHistory = []; let rpTurn = 1; let progressInterval = null;
 
@@ -258,19 +257,15 @@
             const hasActivePanels = document.querySelectorAll('.game-panel.active').length > 0;
             if (hasActivePanels) return;
 
-            if (selectedLang === 'vi') { audioVn.play().catch(e => console.log("BGM play blocked by browser")); } 
-            else { audioEn.play().catch(e => console.log("BGM play blocked by browser")); }
+            if (selectedLang === 'vi') { audioVn.play().catch(e => console.log("BGM play blocked")); } 
+            else { audioEn.play().catch(e => console.log("BGM play blocked")); }
         }
 
         function unlockAudioSafely(audioElement) {
             audioElement.muted = true;
             let playPromise = audioElement.play();
             if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    audioElement.pause();
-                    audioElement.muted = false;
-                    audioElement.currentTime = 0;
-                }).catch(err => console.log("Unlock failed: ", err));
+                playPromise.then(() => { audioElement.pause(); audioElement.muted = false; audioElement.currentTime = 0; }).catch(err => console.log(err));
             }
         }
 
@@ -278,9 +273,7 @@
         startBtn.addEventListener('click', () => {
             if(playerNameInput.value.trim() !== "") { playerName = playerNameInput.value.trim(); localStorage.setItem('ngoquyen_player_name', playerName); }
             scrollOverlay.style.display = 'flex'; scrollOverlay.style.opacity = '1';
-
             unlockAudioSafely(sweepAudio); unlockAudioSafely(blowAudio); unlockAudioSafely(audioVn); unlockAudioSafely(audioEn); unlockAudioSafely(currentTTSAudio);
-            
             introScreen.style.opacity = '0'; 
             setTimeout(() => { introScreen.style.display = 'none'; startParchmentSequence(); }, 800);
         });
@@ -293,10 +286,7 @@
         function updateParticles() { pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height); for(let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= p.decay; if(p.life <= 0) { particles.splice(i, 1); } else { pCtx.fillStyle = p.color + p.life + `)`; pCtx.beginPath(); pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2); pCtx.fill(); } } if (!isRevealed || particles.length > 0) requestAnimationFrame(updateParticles); }
 
         function startParchmentSequence() { 
-            document.getElementById('dust-title').textContent = dict[selectedLang].dustTitle; 
-            document.getElementById('dust-sub').textContent = dict[selectedLang].dustSub; 
-            document.getElementById('brush-btn').textContent = dict[selectedLang].brushBtn; 
-            document.getElementById('secret-text').textContent = dict[selectedLang].secretText; 
+            document.getElementById('dust-title').textContent = dict[selectedLang].dustTitle; document.getElementById('dust-sub').textContent = dict[selectedLang].dustSub; document.getElementById('brush-btn').textContent = dict[selectedLang].brushBtn; document.getElementById('secret-text').textContent = dict[selectedLang].secretText; 
             renderRealisticDust(); updateParticles(); 
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => { let audioContext = new (window.AudioContext || window.webkitAudioContext)(); let analyser = audioContext.createAnalyser(); let microphone = audioContext.createMediaStreamSource(stream); microphone.connect(analyser); analyser.fftSize = 256; const dataArray = new Uint8Array(analyser.frequencyBinCount); function detectBlow() { if(isRevealed || isBrushingMode) return; analyser.getByteFrequencyData(dataArray); let sum = 0; for(let i = 0; i < analyser.frequencyBinCount; i++) sum += dataArray[i]; if ((sum / analyser.frequencyBinCount) > 70) blowAwayDust(); blowAnimationFrame = requestAnimationFrame(detectBlow); } detectBlow(); }).catch(err => { enableBrushMode(); }); 
         }
@@ -314,38 +304,12 @@
             dustCanvas.addEventListener('touchmove', (e) => { if(isDrawing && !isRevealed) { e.preventDefault(); const rect = dustCanvas.getBoundingClientRect(); const currentX = e.touches[0].clientX - rect.left; const currentY = e.touches[0].clientY - rect.top; eraseCanvasSoftly(lastX, lastY, currentX, currentY); lastX = currentX; lastY = currentY; } }, { passive: false }); 
         }
         
-        function eraseCanvasSoftly(x1, y1, x2, y2) { 
-            ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 80; ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(0,0,0,1)'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.shadowBlur = 0; spawnParticles(x2, y2, 3, false); 
-            if(sweepAudio.paused) { sweepAudio.currentTime = 0; sweepAudio.play().catch(e=>console.log(e)); } 
-            checkCanvasCompletion(); 
-        }
-
-        function blowAwayDust() { 
-            ctx.globalCompositeOperation = 'destination-out'; ctx.shadowBlur = 50; ctx.shadowColor = 'rgba(0,0,0,1)'; let randX = Math.random() * dustCanvas.width; let randY = Math.random() * dustCanvas.height; for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(randX, randY, 60 + Math.random()*80, 0, Math.PI * 2); ctx.fill(); } ctx.shadowBlur = 0; spawnParticles(randX, randY, 15, true); 
-            if(blowAudio.paused) { blowAudio.currentTime = 0; blowAudio.play().catch(e=>console.log(e)); } 
-            checkCanvasCompletion(); 
-        }
-
-        let checkThrottle = 0; 
-        function checkCanvasCompletion() { 
-            checkThrottle++; if(checkThrottle % 10 !== 0) return; 
-            const imgData = ctx.getImageData(0, 0, dustCanvas.width, dustCanvas.height).data; let transparentCount = 0; 
-            for (let i = 3; i < imgData.length; i += 4) { if (imgData[i] < 128) transparentCount++; } 
-            if ((transparentCount / (imgData.length / 4)) * 100 > 50 && !isRevealed) { isRevealed = true; completeReveal(); } 
-        }
+        function eraseCanvasSoftly(x1, y1, x2, y2) { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 80; ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(0,0,0,1)'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.shadowBlur = 0; spawnParticles(x2, y2, 3, false); if(sweepAudio.paused) { sweepAudio.currentTime = 0; sweepAudio.play().catch(e=>console.log(e)); } checkCanvasCompletion(); }
+        function blowAwayDust() { ctx.globalCompositeOperation = 'destination-out'; ctx.shadowBlur = 50; ctx.shadowColor = 'rgba(0,0,0,1)'; let randX = Math.random() * dustCanvas.width; let randY = Math.random() * dustCanvas.height; for(let i=0; i<4; i++) { ctx.beginPath(); ctx.arc(randX, randY, 60 + Math.random()*80, 0, Math.PI * 2); ctx.fill(); } ctx.shadowBlur = 0; spawnParticles(randX, randY, 15, true); if(blowAudio.paused) { blowAudio.currentTime = 0; blowAudio.play().catch(e=>console.log(e)); } checkCanvasCompletion(); }
+        let checkThrottle = 0; function checkCanvasCompletion() { checkThrottle++; if(checkThrottle % 10 !== 0) return; const imgData = ctx.getImageData(0, 0, dustCanvas.width, dustCanvas.height).data; let transparentCount = 0; for (let i = 3; i < imgData.length; i += 4) { if (imgData[i] < 128) transparentCount++; } if ((transparentCount / (imgData.length / 4)) * 100 > 50 && !isRevealed) { isRevealed = true; completeReveal(); } }
         
-        function completeReveal() { 
-            dustCanvas.style.opacity = '0'; instructionBox.style.opacity = '0'; brushBtn.style.opacity = '0'; secretText.style.opacity = '1'; 
-            setTimeout(() => { scrollOverlay.style.opacity = '0'; setTimeout(() => { scrollOverlay.style.display = 'none'; startMainExperience(); }, 1500); }, 4000); 
-        }
-        
-        function startMainExperience() { 
-            isMainExperienceStarted = true;
-            document.getElementById('main-ui').classList.add('show-ui'); document.getElementById('top-controls').classList.add('show'); 
-            langToggleBtn.textContent = selectedLang === 'vi' ? 'English' : 'Tiếng Việt'; 
-            model.setAttribute('camera-controls', ''); model.cameraOrbit = "0deg 75deg 100%"; 
-            playBGM(); 
-        }
+        function completeReveal() { dustCanvas.style.opacity = '0'; instructionBox.style.opacity = '0'; brushBtn.style.opacity = '0'; secretText.style.opacity = '1'; setTimeout(() => { scrollOverlay.style.opacity = '0'; setTimeout(() => { scrollOverlay.style.display = 'none'; startMainExperience(); }, 1500); }, 4000); }
+        function startMainExperience() { isMainExperienceStarted = true; document.getElementById('main-ui').classList.add('show-ui'); document.getElementById('top-controls').classList.add('show'); langToggleBtn.textContent = selectedLang === 'vi' ? 'English' : 'Tiếng Việt'; model.setAttribute('camera-controls', ''); model.cameraOrbit = "0deg 75deg 100%"; playBGM(); }
         
         restartBtn.addEventListener('click', () => { window.location.reload(); });
 
@@ -353,18 +317,17 @@
         function stopAllAITasks() { 
             if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio.removeAttribute('src'); currentTTSAudio.load(); } 
             if (typingInterval) { clearInterval(typingInterval); typingInterval = null; } 
+            if (mvAnimInterval) { clearInterval(mvAnimInterval); mvAnimInterval = null; } 
             if (currentAbortController) { currentAbortController.abort(); } 
             if (rpAbortController) { rpAbortController.abort(); }
-            stopProgressBar('qa-progress', 'qa-bar'); stopProgressBar('mv-progress', 'mv-bar'); stopProgressBar('rp-progress', 'rp-bar');
+            stopProgressBar('qa-progress', 'qa-bar', 'qa-text'); stopProgressBar('mv-progress', 'mv-bar', 'mv-text'); stopProgressBar('rp-progress', 'rp-bar', 'rp-text');
         }
 
         function closeAllPopups() {
             document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
             overlayDetail.classList.remove('active'); overlayGuide.classList.remove('active');
             detailBtn.classList.remove('active-state'); guideBtn.classList.remove('active-state'); qaBtn.classList.remove('active-state'); mvBtn.classList.remove('active-state'); roleplayBtn.classList.remove('active-state');
-            body.classList.remove('info-active'); 
-            stopAllAITasks();
-            playBGM(); 
+            body.classList.remove('info-active'); stopAllAITasks(); playBGM(); 
         }
 
         window.closeAllPopups = closeAllPopups;
@@ -378,13 +341,11 @@
         });
 
         langToggleBtn.addEventListener('click', () => { 
-            stopAllAITasks(); 
-            selectedLang = selectedLang === 'vi' ? 'en' : 'vi'; 
+            stopAllAITasks(); selectedLang = selectedLang === 'vi' ? 'en' : 'vi'; 
             langToggleBtn.textContent = selectedLang === 'vi' ? 'English' : 'Tiếng Việt'; 
             detailBtn.textContent = dict[selectedLang].detailBtn; guideBtn.textContent = dict[selectedLang].guideBtn; qaBtn.textContent = dict[selectedLang].qaBtn; mvBtn.textContent = dict[selectedLang].mvBtn; roleplayBtn.textContent = dict[selectedLang].roleplayBtn;
             document.querySelectorAll('.lang-vi').forEach(el => el.style.display = (selectedLang === 'vi') ? 'block' : 'none'); document.querySelectorAll('.lang-en').forEach(el => el.style.display = (selectedLang === 'en') ? 'block' : 'none'); 
-            audioVn.currentTime = 0; audioEn.currentTime = 0; 
-            playBGM(); 
+            audioVn.currentTime = 0; audioEn.currentTime = 0; playBGM(); 
         });
 
         detailBtn.addEventListener('click', (e) => { e.stopPropagation(); const wasActive = overlayDetail.classList.contains('active'); closeAllPopups(); if (!wasActive) { overlayDetail.classList.add('active'); detailBtn.classList.add('active-state'); detailBtn.textContent = dict[selectedLang].closeBtn; body.classList.add('info-active'); } });
@@ -393,15 +354,45 @@
         document.getElementById('qa-input').addEventListener('focus', () => { setTimeout(() => document.getElementById('qa-input').scrollIntoView({ behavior: 'smooth', block: 'center' }), 300); });
         document.getElementById('mv-input').addEventListener('focus', () => { setTimeout(() => document.getElementById('mv-input').scrollIntoView({ behavior: 'smooth', block: 'center' }), 300); });
 
-        function startProgressBar(containerId, barId, timeInSeconds) { document.getElementById(containerId).style.display = 'block'; let bar = document.getElementById(barId); let width = 0; bar.style.width = width + '%'; if(progressInterval) clearInterval(progressInterval); let stepTime = (timeInSeconds * 1000) / 90; progressInterval = setInterval(() => { if (width < 90) { width += 1; bar.style.width = width + '%'; } }, stepTime); }
-        function stopProgressBar(containerId, barId) { if(progressInterval) clearInterval(progressInterval); if(document.getElementById(barId)) document.getElementById(barId).style.width = '100%'; setTimeout(() => { if(document.getElementById(containerId)) document.getElementById(containerId).style.display = 'none'; }, 800); }
+        // ================= THANH TIẾN ĐỘ =================
+        function startProgressBar(containerId, barId, textId, timeInSeconds) { 
+            if (progressHideTimeout) { clearTimeout(progressHideTimeout); progressHideTimeout = null; }
+            document.getElementById(containerId).style.display = 'block'; 
+            let bar = document.getElementById(barId); let textEl = document.getElementById(textId); let width = 0; 
+            bar.style.width = width + '%'; if(textEl) textEl.textContent = width + '%'; 
+            if(progressInterval) clearInterval(progressInterval); 
+            let stepTime = (timeInSeconds * 1000) / 95; 
+            progressInterval = setInterval(() => { 
+                if (width < 95) { width += 1; bar.style.width = width + '%'; if(textEl) textEl.textContent = "Đang xử lý... " + width + '%'; } 
+            }, stepTime); 
+        }
+        
+        function stopProgressBar(containerId, barId, textId) { 
+            if(progressInterval) clearInterval(progressInterval); 
+            let bar = document.getElementById(barId); let textEl = document.getElementById(textId); 
+            if(bar) bar.style.width = '100%'; if(textEl) textEl.textContent = 'Hoàn tất 100%'; 
+            if (progressHideTimeout) clearTimeout(progressHideTimeout);
+            progressHideTimeout = setTimeout(() => { 
+                if(document.getElementById(containerId)) document.getElementById(containerId).style.display = 'none'; 
+            }, 1200); 
+        }
 
         function renderSuggestions(arraySug, containerId, inputId, endpointMode) {
             const container = document.getElementById(containerId); container.innerHTML = ''; 
             arraySug.forEach(sug => { let btn = document.createElement('button'); btn.className = 'prompt-chip'; btn.textContent = sug; btn.onclick = (e) => { e.stopPropagation(); document.getElementById(inputId).value = sug; sendToAI(sug, endpointMode); }; container.appendChild(btn); });
         }
 
-        // ================= 1. AI HỎI ĐÁP =================
+        // ================= GỬI BÁO CÁO VỀ GIÁO VIÊN (GOOGLE SHEETS) =================
+        async function sendReportToTeacher(type, directHistoryArray = null) {
+            let targetHistory = directHistoryArray ? directHistoryArray : (type === 'Đa Vũ Trụ' ? mvHistory : rpHistory);
+            // GẮN THÊM ĐUÔI "- Ngô Quyền" ĐỂ GOOGLE SCRIPT TỰ ĐỘNG TẠO TAB MỚI
+            const projectType = type + " - Ngô Quyền";
+            const dataToSend = { playerName: playerName, history: targetHistory, type: projectType };
+            try { await fetch('https://backend-api-uvoc.onrender.com/save-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend) }); } 
+            catch (err) { console.error("Lỗi gửi báo cáo:", err); }
+        }
+
+        // ================= AI HỎI ĐÁP & ĐA VŨ TRỤ =================
         qaBtn.addEventListener('click', (e) => {
             e.stopPropagation(); closeAllPopups(); audioVn.pause(); audioEn.pause();
             qaBtn.classList.add('active-state'); document.getElementById('qa-panel').classList.add('active');
@@ -413,7 +404,6 @@
         document.getElementById('qa-send-btn').addEventListener('click', (e) => { e.stopPropagation(); const txt = document.getElementById('qa-input').value.trim(); if(txt) sendToAI(txt, 'ask'); });
         document.getElementById('qa-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('qa-send-btn').click(); });
 
-        // ================= 2. ĐA VŨ TRỤ =================
         mvBtn.addEventListener('click', (e) => {
             e.stopPropagation(); closeAllPopups(); audioVn.pause(); audioEn.pause();
             mvBtn.classList.add('active-state'); document.getElementById('mv-panel').classList.add('active');
@@ -432,19 +422,24 @@
             const statBox = isMV ? document.getElementById('mv-status') : document.getElementById('qa-status');
             const progCon = isMV ? 'mv-progress' : 'qa-progress';
             const progBar = isMV ? 'mv-bar' : 'qa-bar';
+            const textId = isMV ? 'mv-text' : 'qa-text';
             const sugCon = isMV ? 'mv-prompts' : 'qa-prompts';
             const inputId = isMV ? 'mv-input' : 'qa-input';
 
-            resBox.textContent = "Đang kết nối lượng tử..."; stopAllAITasks(); currentAbortController = new AbortController();
-            startProgressBar(progCon, progBar, isMV ? 12 : 5);
+            stopAllAITasks(); resBox.textContent = "Đang kết nối lượng tử..."; 
+            currentAbortController = new AbortController(); const myAbortSignal = currentAbortController.signal;
 
+            startProgressBar(progCon, progBar, textId, isMV ? 12 : 5);
             if(isMV) { document.getElementById('mv-img-box').style.display = 'none'; document.getElementById('mv-stats').style.display = 'none'; }
 
             try {
-                const payload = isMV ? { history: mvHistory, scenario: question } : { question: question, lang: selectedLang };
-                const response = await fetch(`https://backend-api-uvoc.onrender.com/${mode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: currentAbortController.signal });
-                const data = await response.json(); stopProgressBar(progCon, progBar);
-
+                const payload = isMV ? { history: mvHistory, scenario: question, lang: selectedLang } : { question: question, lang: selectedLang };
+                const response = await fetch(`https://backend-api-uvoc.onrender.com/${mode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: myAbortSignal });
+                const data = await response.json(); 
+                
+                if (myAbortSignal.aborted) return;
+                stopProgressBar(progCon, progBar, textId);
+                
                 if (data.error) throw new Error(data.reply);
 
                 if (isMV) {
@@ -453,18 +448,31 @@
                     
                     if (data.successRate !== undefined && data.successRate !== 0) {
                         document.getElementById('mv-stats').style.display = 'flex'; statBox.textContent = "💻 Đang tính toán mô phỏng...";
-                        let stTime = Date.now(); let anim = setInterval(() => { 
-                            if (Date.now() - stTime > 3000) { clearInterval(anim); document.getElementById('mv-stat-success').textContent = data.successRate + "%"; document.getElementById('mv-stat-casualty').textContent = data.casualties + "%"; 
+                        let stTime = Date.now(); 
+                        mvAnimInterval = setInterval(() => { 
+                            if (myAbortSignal.aborted) { clearInterval(mvAnimInterval); return; }
+                            if (Date.now() - stTime > 3000) { 
+                                clearInterval(mvAnimInterval); 
+                                document.getElementById('mv-stat-success').textContent = data.successRate + "%"; 
+                                document.getElementById('mv-stat-casualty').textContent = data.casualties + "%"; 
                                 if (data.imageUrl) { document.getElementById('mv-image').src = data.imageUrl; document.getElementById('mv-img-box').style.display = 'block'; }
-                                renderSuggestions(data.suggestions, sugCon, inputId, mode); fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang giải mã kết quả..."); return; 
+                                renderSuggestions(data.suggestions, sugCon, inputId, mode); 
+                                fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang giải mã kết quả...", myAbortSignal); 
+                                return; 
                             } 
-                            document.getElementById('mv-stat-success').textContent = Math.floor(Math.random() * 100) + "%"; document.getElementById('mv-stat-casualty').textContent = Math.floor(Math.random() * 100) + "%"; 
+                            document.getElementById('mv-stat-success').textContent = Math.floor(Math.random() * 100) + "%"; 
+                            document.getElementById('mv-stat-casualty').textContent = Math.floor(Math.random() * 100) + "%"; 
                         }, 50);
-                    } else { renderSuggestions(data.suggestions, sugCon, inputId, mode); fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang truyền tin..."); }
+                    } else { renderSuggestions(data.suggestions, sugCon, inputId, mode); fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang truyền tin...", myAbortSignal); }
                 } else {
-                    renderSuggestions(data.suggestions, sugCon, inputId, mode); fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang truyền tin...");
+                    let qaRecord = [ { role: "user", content: question }, { role: "assistant", content: data.reply } ];
+                    sendReportToTeacher("Hỏi Đáp", qaRecord);
+                    renderSuggestions(data.suggestions, sugCon, inputId, mode); fetchAndPlayTTS(data.reply, 'onyx', statBox, resBox, "Đang truyền tin...", myAbortSignal);
                 }
-            } catch (error) { if (error.name === 'AbortError') return; stopProgressBar(progCon, progBar); resBox.textContent = "Mất kết nối mạng. Xin hãy thử lại!"; statBox.textContent = "Lỗi"; }
+            } catch (error) { 
+                if (error.name === 'AbortError' || myAbortSignal.aborted) return; 
+                stopProgressBar(progCon, progBar, textId); resBox.textContent = "Mất kết nối mạng. Xin hãy thử lại!"; statBox.textContent = "Lỗi"; 
+            }
         }
 
         // ================= 3. TRÒ CHƠI NHẬP VAI =================
@@ -477,91 +485,177 @@
         });
 
         async function fetchRoleplayTurnData(userChoiceText = null) {
-            document.getElementById('rp-options-container').innerHTML = ''; startProgressBar('rp-progress', 'rp-bar', 5);
+            document.getElementById('rp-options-container').innerHTML = ''; startProgressBar('rp-progress', 'rp-bar', 'rp-text', 5);
             if (userChoiceText) rpHistory.push({ role: "user", content: `Ta quyết định: ${userChoiceText}` });
-            if (rpAbortController) rpAbortController.abort(); rpAbortController = new AbortController();
-            const response = await fetch('https://backend-api-uvoc.onrender.com/roleplay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ history: rpHistory, turn: rpTurn }), signal: rpAbortController.signal });
-            stopProgressBar('rp-progress', 'rp-bar'); return await response.json();
+            
+            if (rpAbortController) rpAbortController.abort(); 
+            rpAbortController = new AbortController();
+            
+            const response = await fetch('https://backend-api-uvoc.onrender.com/roleplay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ history: rpHistory, turn: rpTurn, lang: selectedLang }), signal: rpAbortController.signal });
+            stopProgressBar('rp-progress', 'rp-bar', 'rp-text'); 
+            return await response.json();
         }
 
         async function handlePlayerChoice(choiceText, event) {
             if(event) event.stopPropagation(); document.querySelectorAll('.rp-option-btn').forEach(b => b.disabled = true);
+            stopAllAITasks();
             document.getElementById('rp-npc-text').innerHTML = `<span style="color:#e5c158; font-weight:bold;">Ngô Vương:</span> `;
             try {
                 const nextTurnPromise = fetchRoleplayTurnData(choiceText);
-                await fetchAndPlayTTS(`${choiceText}`, 'onyx', null, document.getElementById('rp-npc-text'), "");
-                const data = await nextTurnPromise; renderRoleplayTurn(data);
-            } catch (err) { if (err.name === 'AbortError') return; stopProgressBar('rp-progress', 'rp-bar'); document.getElementById('rp-npc-text').textContent = "Mất kết nối mạng. Hãy thử lại."; }
+                await fetchAndPlayTTS(`${choiceText}`, 'onyx', null, document.getElementById('rp-npc-text'), "", rpAbortController.signal);
+                const data = await nextTurnPromise; 
+                if (rpAbortController.signal.aborted) return;
+                renderRoleplayTurn(data);
+            } catch (err) { 
+                if (err.name === 'AbortError' || rpAbortController.signal.aborted) return; 
+                stopProgressBar('rp-progress', 'rp-bar', 'rp-text'); document.getElementById('rp-npc-text').textContent = "Mất kết nối mạng. Hãy thử lại."; 
+            }
         }
 
         async function renderRoleplayTurn(data) {
             if (data.error) { document.getElementById('rp-npc-text').textContent = "Hệ thống bị ngắt kết nối."; return; }
-            rpHistory.push({ role: "assistant", content: JSON.stringify(data) }); document.getElementById('rp-turn-text').textContent = `Lượt: ${rpTurn} / 15`; document.getElementById('rp-options-container').innerHTML = '';
+            rpHistory.push({ role: "assistant", content: JSON.stringify(data) }); 
+            
+            document.getElementById('rp-turn-text').textContent = `Lượt: ${rpTurn} / 10`; 
+            document.getElementById('rp-options-container').innerHTML = '';
 
-            if (data.isGameOver || rpTurn > 15) {
+            if (data.isGameOver || rpTurn >= 10) {
                 document.getElementById('rp-npc-text').innerHTML = `<span style="color:#ff6b6b; font-weight:bold;">KẾT THÚC:</span> ${data.npcDialogue}<br><br><em style="color:#e5c158">${data.endReason}</em>`;
                 document.getElementById('btnExportRoleplay').style.display = 'block'; 
-                await fetchAndPlayTTS(data.npcDialogue + ". " + data.endReason, 'alloy', null, null, ""); return;
+                await fetchAndPlayTTS(data.npcDialogue + ". " + data.endReason, 'alloy', null, null, "", rpAbortController.signal); return;
             }
+
+            if (!data.choices || data.choices.length === 0) { data.choices = ["Tiếp tục xem biến động..."]; }
 
             data.choices.forEach((choice) => {
                 let cleanChoice = choice.replace(/^([0-9a-zA-ZÀ-ỹ][\.\-\)]\s*)+/g, '').trim(); cleanChoice = cleanChoice.replace(/^-\s*/, '');
                 const btn = document.createElement('button'); btn.className = 'rp-option-btn'; btn.textContent = cleanChoice;
                 btn.onclick = (e) => handlePlayerChoice(cleanChoice, e); document.getElementById('rp-options-container').appendChild(btn);
             });
-            rpTurn++; document.getElementById('rp-npc-text').innerHTML = `<span style="color:#a894c2; font-weight:bold;">NPC:</span> `; await fetchAndPlayTTS(data.npcDialogue, 'alloy', null, document.getElementById('rp-npc-text'), "");
+            rpTurn++; document.getElementById('rp-npc-text').innerHTML = `<span style="color:#a894c2; font-weight:bold;">NPC:</span> `; 
+            await fetchAndPlayTTS(data.npcDialogue, 'alloy', null, document.getElementById('rp-npc-text'), "", rpAbortController.signal);
         }
 
         // ================= TTS =================
-        async function fetchAndPlayTTS(textToSpeak, voiceType, statusElement, textElement, speakingMsg) {
+        async function fetchAndPlayTTS(textToSpeak, voiceType, statusElement, textElement, speakingMsg, abortSignal = null) {
             return new Promise(async (resolve) => {
                 if (!textToSpeak) { resolve(); return; }
+                if (abortSignal && abortSignal.aborted) { resolve(); return; }
+                
                 const cleanText = textToSpeak.replace(/[*#_]/g, ''); 
-                if (!currentAbortController || currentAbortController.signal.aborted) { currentAbortController = new AbortController(); }
+                let fetchSignal = abortSignal;
+                if (!fetchSignal) {
+                    if (!currentAbortController || currentAbortController.signal.aborted) { currentAbortController = new AbortController(); }
+                    fetchSignal = currentAbortController.signal;
+                }
 
                 let prefix = ""; if (textElement && textElement.id === 'rp-npc-text') { prefix = (voiceType === 'onyx') ? `<span style="color:#e5c158; font-weight:bold;">Ngô Vương:</span> ` : `<span style="color:#a894c2; font-weight:bold;">NPC:</span> `; }
 
                 try {
-                    const response = await fetch('https://backend-api-uvoc.onrender.com/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: cleanText, voiceId: voiceType }), signal: currentAbortController.signal });
-                    if (!response.ok) { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve); return; }
+                    const response = await fetch('https://backend-api-uvoc.onrender.com/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: cleanText, voiceId: voiceType }), signal: fetchSignal });
+                    if (fetchSignal.aborted) { resolve(); return; }
+                    if (!response.ok) { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve, fetchSignal); return; }
 
-                    const audioBlob = await response.blob(); const audioUrl = URL.createObjectURL(audioBlob);
+                    const audioBlob = await response.blob(); 
+                    if (fetchSignal.aborted) { resolve(); return; }
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
                     if (currentTTSAudio) { currentTTSAudio.pause(); currentTTSAudio.removeAttribute('src'); currentTTSAudio.load(); }
                     if (typingInterval) clearInterval(typingInterval); 
                     
                     currentTTSAudio.src = audioUrl; currentTTSAudio.volume = 1.0; 
                     currentTTSAudio.onended = () => { if(statusElement) statusElement.textContent = "Hoàn tất."; resolve(); };
-                    currentTTSAudio.onerror = () => { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve); };
+                    currentTTSAudio.onerror = () => { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve, fetchSignal); };
                     
                     if(statusElement) statusElement.textContent = speakingMsg; if(textElement) textElement.innerHTML = prefix; 
-                    let playPromise = currentTTSAudio.play(); if (playPromise !== undefined) playPromise.catch(e => { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve); });
+                    let playPromise = currentTTSAudio.play(); if (playPromise !== undefined) playPromise.catch(e => { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve, fetchSignal); });
                     
                     if(textElement) {
-                        let i = 0; typingInterval = setInterval(() => { if (i < textToSpeak.length) { textElement.innerHTML += textToSpeak.charAt(i); i++; textElement.scrollTop = textElement.scrollHeight; } else { clearInterval(typingInterval); typingInterval = null; resolve(); } }, 40); 
+                        let i = 0; typingInterval = setInterval(() => { 
+                            if (fetchSignal.aborted) { clearInterval(typingInterval); resolve(); return; }
+                            if (i < textToSpeak.length) { textElement.innerHTML += textToSpeak.charAt(i); i++; textElement.scrollTop = textElement.scrollHeight; } 
+                            else { clearInterval(typingInterval); typingInterval = null; resolve(); } 
+                        }, 40); 
                     }
-                } catch (err) { fallbackTypeWriter(textToSpeak, textElement, prefix, resolve); }
+                } catch (err) { 
+                    if (err.name === 'AbortError' || fetchSignal.aborted) { resolve(); return; }
+                    fallbackTypeWriter(textToSpeak, textElement, prefix, resolve, fetchSignal); 
+                }
             });
         }
 
-        function fallbackTypeWriter(text, element, prefix, resolve) {
-            if (!element) { resolve(); return; }
+        function fallbackTypeWriter(text, element, prefix, resolve, fetchSignal) {
+            if (!element || (fetchSignal && fetchSignal.aborted)) { resolve(); return; }
             if (typingInterval) clearInterval(typingInterval); element.innerHTML = prefix; let i = 0;
-            typingInterval = setInterval(() => { if (i < text.length) { element.innerHTML += text.charAt(i); i++; element.scrollTop = element.scrollHeight; } else { clearInterval(typingInterval); typingInterval = null; resolve(); } }, 30);
+            typingInterval = setInterval(() => { 
+                if (fetchSignal && fetchSignal.aborted) { clearInterval(typingInterval); resolve(); return; }
+                if (i < text.length) { element.innerHTML += text.charAt(i); i++; element.scrollTop = element.scrollHeight; } 
+                else { clearInterval(typingInterval); typingInterval = null; resolve(); } 
+            }, 30);
         }
-
-        window.addEventListener('click', (e) => { 
-            if (!e.target.closest('.overlay-layer') && !e.target.closest('.game-panel') && !e.target.closest('#main-ui') && !e.target.closest('#top-controls') && !e.target.closest('#intro-screen')) { 
-                closeAllPopups(); 
-            } 
-        });
 
         // ================= PDF =================
         function exportPDF(contentHTML, fileName) {
-            const container = document.getElementById('pdf-content-box'); container.innerHTML = `<h3>Người học: ${playerName}</h3>` + contentHTML;
-            const element = document.getElementById('pdf-export-container'); const opt = { margin: 1, filename: fileName, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }; html2pdf().set(opt).from(element).save();
+            const printContent = `
+                <div style="padding: 30px; font-family: 'Times New Roman', serif; color: #000; background: #fff; width: 100%; max-width: 800px; margin: auto;">
+                    <h2 style="font-size: 24px; color: #b33939; text-align: center; border-bottom: 2px solid #b33939; padding-bottom: 10px; margin-bottom: 20px;">
+                        BÁO CÁO HỌC TẬP LỊCH SỬ - NGÔ QUYỀN
+                    </h2>
+                    <h3 style="font-size: 18px; color: #333;">Người học: ${playerName}</h3>
+                    <div style="font-size: 16px; line-height: 1.6; text-align: justify;">
+                        ${contentHTML}
+                    </div>
+                </div>
+            `;
+            const element = document.getElementById('pdf-export-container');
+            element.innerHTML = printContent;
+            element.style.display = 'block'; element.style.position = 'fixed'; element.style.zIndex = '999999';
+
+            const opt = { margin: 0.5, filename: fileName, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }; 
+            html2pdf().set(opt).from(element).save().then(() => { element.style.display = 'none'; });
         }
-        document.getElementById('btnExportWhatIf').addEventListener('click', () => { let html = "<h4>Hành trình Đa vũ trụ</h4><ul>"; mvHistory.forEach(h => { html += `<li><b>${h.role === 'user' ? 'Hỏi' : 'Phân tích'}:</b> ${h.content}</li>`; }); html += "</ul>"; exportPDF(html, 'Bao_Cao_Da_Vu_Tru_Ngo_Quyen.pdf'); });
-        document.getElementById('btnExportRoleplay').addEventListener('click', () => { let html = "<h4>Báo cáo Quyết sách Nhập vai</h4><ul>"; rpHistory.forEach(h => { if(h.role === 'user') html += `<li><b>Ngô Vương:</b> ${h.content}</li>`; else { let d = JSON.parse(h.content); html += `<li><b>Cục diện:</b> ${d.npcDialogue}</li>`; if(d.isGameOver) html += `<li><b>TỔNG KẾT:</b> ${d.endReason}</li>`; } }); html += "</ul>"; exportPDF(html, 'Hoc_Ba_Lich_Su_Ngo_Quyen.pdf'); });
+        
+        document.getElementById('btnExportWhatIf').addEventListener('click', () => { 
+            sendReportToTeacher('Đa Vũ Trụ'); 
+            let html = "<h4>Hành trình Đa vũ trụ</h4><ul>"; 
+            mvHistory.forEach(h => { html += `<li style="margin-bottom:10px;"><b>${h.role === 'user' ? 'Hỏi' : 'Phân tích'}:</b> ${h.content}</li>`; }); 
+            html += "</ul>"; exportPDF(html, 'Bao_Cao_Da_Vu_Tru_Ngo_Quyen.pdf'); 
+        });
+
+        document.getElementById('btnExportRoleplay').addEventListener('click', () => { 
+            sendReportToTeacher('Nhập Vai'); 
+            let html = "<h4>Báo cáo Quyết sách Nhập vai</h4><ul>"; 
+            rpHistory.forEach(h => { 
+                if(h.role === 'user') html += `<li style="margin-bottom:10px;"><b>Ngô Vương:</b> ${h.content}</li>`; 
+                else { let d = JSON.parse(h.content); html += `<li style="margin-bottom:10px;"><b>Cục diện:</b> ${d.npcDialogue}</li>`; if(d.isGameOver) html += `<li style="margin-bottom:10px;"><b>TỔNG KẾT:</b> ${d.endReason}</li>`; } 
+            }); 
+            html += "</ul>"; exportPDF(html, 'Hoc_Ba_Lich_Su_Ngo_Quyen.pdf'); 
+        });
+
+        // ================= TÍNH NĂNG NHẬN DIỆN GIỌNG NÓI =================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition(); recognition.continuous = false; recognition.interimResults = true; 
+            function setupMicButton(btnId, inputId) {
+                const btn = document.getElementById(btnId); const input = document.getElementById(inputId);
+                const originalBg = btn.style.background; const originalColor = btn.style.color; let isRecording = false;
+                
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (isRecording) { recognition.stop(); return; }
+                    recognition.lang = selectedLang === 'vi' ? 'vi-VN' : 'en-US'; input.value = ""; 
+                    try { recognition.start(); isRecording = true; btn.innerHTML = selectedLang === 'vi' ? "⏹️ Chốt Câu Hỏi" : "⏹️ Stop & Confirm"; btn.style.background = "#ff6b6b"; btn.style.color = "#fff"; } catch (err) { console.log("Mic đang bận."); }
+                    recognition.onresult = (event) => { let finalTranscript = ''; let interimTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript; } else { interimTranscript += event.results[i][0].transcript; } } input.value = finalTranscript + interimTranscript; };
+                    recognition.onspeechend = () => { recognition.stop(); };
+                    recognition.onend = () => { isRecording = false; btn.innerHTML = "🎙️ Bật Mic"; btn.style.background = originalBg; btn.style.color = originalColor; };
+                    recognition.onerror = (event) => { console.error("Lỗi Mic:", event.error); isRecording = false; btn.innerHTML = "🎙️ Bật Mic"; btn.style.background = originalBg; btn.style.color = originalColor; if(event.error === 'not-allowed') { alert(selectedLang === 'vi' ? "Vui lòng cấp quyền sử dụng Micro trên trình duyệt!" : "Please allow microphone access!"); } };
+                });
+            }
+            setupMicButton('qa-mic-btn', 'qa-input'); setupMicButton('mv-mic-btn', 'mv-input');
+        } else {
+            const noMicMsg = () => alert(selectedLang === 'vi' ? "Trình duyệt của bạn không hỗ trợ nhận diện giọng nói." : "Speech recognition is not supported in this browser.");
+            document.getElementById('qa-mic-btn').addEventListener('click', noMicMsg); document.getElementById('mv-mic-btn').addEventListener('click', noMicMsg);
+        }
     </script>
 </body>
 </html>
